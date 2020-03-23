@@ -1,5 +1,7 @@
 import os
+
 import requests
+
 
 def main():
     print(os.getenv('url'))
@@ -13,15 +15,18 @@ def main():
     targetfolder = os.getenv('targetfolder')
 
     headers = {
-        'x-csrftoken' : ('%s' % csrftoken),
-        'referer' : ('%s%s/%s' % (testpadurl, project, targetfolder)),
-        'cookie': ('csrftoken=%s; sessionid=%s;' % (csrftoken, sessionid))
+        'x-csrftoken': csrftoken,
+        'referer': "{url}/{project}/{folder}".format(url=testpadurl, project=project, folder=targetfolder),
+        'cookie': "csrftoken={csrftoken}; sessionid={sessionid};".format(csrftoken=csrftoken, sessionid=sessionid)
     }
 
-    a = requests.post('%s/a%s/%sloadScripts' % (testpadurl, project, targetfolder), headers=headers, json='{"data":null}')
+    a = requests.post(
+        '{url}/a/{project}/{folder}/loadScripts'.format(url=testpadurl, project=project, folder=targetfolder),
+        headers=headers, json='{"data":null}')
     print(a.status_code)
 
     assert a.json()['data'][0]['_id']
+
 
 if __name__ == '__main__':
     main()
