@@ -96,7 +96,7 @@ def update_cookies(response=None, user=None, **kwargs):
         if cookie.name == "csrftoken":
             _csrf_token = cookie.value
             user.csrf_token = _csrf_token
-        if cookie.name == "sessionid":
+        elif cookie.name == "sessionid":
             _session_id = cookie.value
             user.session_id = _session_id
         if _csrf_token and _session_id:
