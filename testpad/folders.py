@@ -24,13 +24,6 @@ def _rename_folder(user=User.get(), project=Project.get(), folder_id=None, name=
         'x-csrftoken': user.csrf_token,
         'x-requested-with': 'XMLHttpRequest',
         'referer': "{url}/project/{project}/".format(url=user.testpad_url, project=project),
-        'content-type': 'application/json',
-        'sec-fetch-site': 'same-origin',
-        'sec-fetch-mode': 'cors',
-        'sec-fetch-dest': 'empty',
-        'accept-language': 'en-US,en;q=0.9',
-        'accept': 'application/json, text/javascript, */*; q=0.01',
-        'Accept-Encoding': 'deflate, gzip',
         'cookie': "csrftoken={csrftoken}; sessionid={sessionid};".format(csrftoken=user.csrf_token,
                                                                          sessionid=user.session_id)
     }
@@ -69,6 +62,6 @@ if __name__ == '__main__':
     Project.set(os.getenv('project'))
     User.set(authentication.authenticate())
 
-    folder = create_folder(user=User.get(), project=Project.get(), targetfolder='f5', name="test_me")
+    folder = create_folder(user=User.get(), project=Project.get(), targetfolder='f1', name="test_me")
     assert folder
     print(json.dumps(folder, indent=4))
