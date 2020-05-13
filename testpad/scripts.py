@@ -1,17 +1,15 @@
 import requests
 
-from testpad import authentication
-from testpad.statics import User, Project
+from testpad import authentication, statics
 
 
 def load_scripts(user=None, project=None, targetfolder=None, **kwargs):
-    headers = {
-        'x-csrftoken': user.csrf_token,
-        'referer': "{url}/project/{project}/folder/{folder}".format(url=user.testpad_url, project=project,
-                                                                    folder=targetfolder),
-        'cookie': "csrftoken={csrftoken}; sessionid={sessionid};".format(csrftoken=user.csrf_token,
-                                                                         sessionid=user.session_id)
-    }
+    project, user = statics.set_project_user(project=project, user=user)
+    headers = authentication.testpad_headers(user=user,
+                                             referer="{url}/project/{project}/folder/{folder}".format(
+                                                 url=user.testpad_url,
+                                                 project=project,
+                                                 folder=targetfolder))
     load_scripts_response = requests.post(
         '{url}/a/project/{project}/folder/{folder}/loadScripts'.format(url=user.testpad_url, project=project,
                                                                        folder=targetfolder),
@@ -20,7 +18,8 @@ def load_scripts(user=None, project=None, targetfolder=None, **kwargs):
     return load_scripts_response.json()
 
 
-def create_script(user=User.get(), project=Project.get(), targetfolder=None, name=None, **kwargs):
+def create_script(user=None, project=None, targetfolder=None, name=None, **kwargs):
+    project, user = statics.set_project_user(project=project, user=user)
     if user is None or project is None or targetfolder is None or name is None:
         raise ValueError(
             "user, project, targetfolder and name must be specified. {locals}".format(locals=str(locals())))
@@ -29,15 +28,12 @@ def create_script(user=User.get(), project=Project.get(), targetfolder=None, nam
     return new_script
 
 
-def _create_new_script(user=User.get(), project=Project.get(), folder=None, **kwargs):
-    headers = {
-        'x-csrftoken': user.csrf_token,
-        'x-requested-with': 'XMLHttpRequest',
-        'referer': "{url}/project/{project}/folder/{folder}/".format(url=user.testpad_url, project=project,
-                                                                     folder=folder),
-        'cookie': "csrftoken={csrftoken}; sessionid={sessionid};".format(csrftoken=user.csrf_token,
-                                                                         sessionid=user.session_id)
-    }
+def _create_new_script(user=None, project=None, folder=None, **kwargs):
+    headers = authentication.testpad_headers(user=user,
+                                             referer="{url}/project/{project}/folder/{folder}/".format(
+                                                 url=user.testpad_url,
+                                                 project=project,
+                                                 folder=folder))
 
     data = '{"data":null}'
 
@@ -53,6 +49,7 @@ def _create_new_script(user=User.get(), project=Project.get(), folder=None, **kw
 if __name__ == '__main__':
     import os
     import json
+    from testpad.statics import User, Project
 
     target_folder = os.getenv('targetfolder')
     Project.set(os.getenv('project'))

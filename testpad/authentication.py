@@ -4,6 +4,7 @@ import requests
 from requests import Response
 
 from main import PUBLIC_TESTPAD_URL
+from testpad.statics import User
 
 
 class AuthenticationData(object):
@@ -27,12 +28,7 @@ def authenticate(csrf_token=None, session_id=None, username=None, password=None,
                                testpad_url=testpad_url, kwargs=kwargs)
     public_login_response = requests.get(PUBLIC_TESTPAD_URL)
     _user = update_cookies(response=public_login_response, user=_user)
-    headers = {
-        "x-csrftoken": csrf_token,
-        "referer": PUBLIC_TESTPAD_URL,
-        'cookie': "csrftoken={csrftoken}; sessionid={sessionid};".format(csrftoken=_user.csrf_token,
-                                                                         sessionid=_user.session_id)
-    }
+    headers = testpad_headers(user=_user, referer=PUBLIC_TESTPAD_URL)
     form_data = {
         "csrfmiddlewaretoken": _user.csrf_token,
         "email": _user.username,
@@ -65,3 +61,17 @@ def update_cookies(response=None, user=None, **kwargs):
             break
 
     return user
+
+
+def testpad_headers(user=None, referer=None, **kwargs):
+    if user is None:
+        user = User.get()
+    headers = {
+        'x-csrftoken': user.csrf_token,
+        'cookie': "csrftoken={csrftoken}; sessionid={sessionid};".format(csrftoken=user.csrf_token,
+                                                                         sessionid=user.session_id),
+        'x-requested-with': 'XMLHttpRequest',
+        'referer': referer,
+        **kwargs
+    }
+    return headers
