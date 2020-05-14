@@ -24,7 +24,8 @@ def create_script(user=None, project=None, targetfolder=None, name=None, **kwarg
         raise ValueError(
             "user, project, targetfolder and name must be specified. {locals}".format(locals=str(locals())))
     new_script = _create_new_script(user=user, project=project, folder=targetfolder, **kwargs)
-
+    rename_script = _rename_script(user=user, project=project, new_name=name, script_id=new_script['data']['id'])
+    assert rename_script['status'] == "OK"
     return new_script
 
 
@@ -44,6 +45,24 @@ def _create_new_script(user=None, project=None, folder=None, **kwargs):
     assert new_script.status_code is 200
     authentication.update_cookies(response=new_script, user=user, **kwargs)
     return new_script.json()
+
+
+def _rename_script(user=None, project=None, new_name=None, script_id=None, **kwargs):
+    project, user = statics.set_project_user(project=project, user=user)
+    if user is None or project is None or new_name is None or script_id is None:
+        raise ValueError(
+            "script_id, user, project and name must be specified. {locals}".format(locals=str(locals())))
+    headers = authentication.testpad_headers(user=user,
+                                             referer="{url}/project/{project}/".format(
+                                                 url=user.testpad_url,
+                                                 project=project))
+    data = {"data": new_name}
+    rename_response = requests.post(
+        "{url}/a/script/{script_id}/editname".format(url=user.testpad_url, script_id=script_id), headers=headers,
+        json=data)
+    assert rename_response.status_code is 200
+    authentication.update_cookies(response=rename_response, user=user, **kwargs)
+    return rename_response.json()
 
 
 if __name__ == '__main__':
