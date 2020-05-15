@@ -5,6 +5,8 @@ import six
 
 from testpad import authentication, statics
 
+ROOT_TEXT = "(root)"
+
 
 def load_scripts(user=None, project=None, targetfolder=None, **kwargs):
     project, user = statics.set_project_user(project=project, user=user)
@@ -93,15 +95,27 @@ def coerce_text_to_lines(text=None):
 
 
 class TestLine(object):
-    def __init__(self, id_=None, cid=0, pid=0, pcid=0, off=0, text=None, tags="", notes=""):
+    def __init__(self, parent=None, id_=None, cid=0, pid=None, pcid=0, off=-1, text=None, tags="", notes=""):
+        if parent is None and text is not ROOT_TEXT:
+            parent = root
+            # should make this the "(root)" parent for correctness.
+            #  root will contain next level down parents,
+            # which will all be empty lines containing the next level down parents.
+            # root will  have text "(root)"
+            # root does not get posted to testpad
+            # the first line of the script (the feature here) is NOT related tot he other parents except as siblings
+        self.parent = parent
         self.notes = notes
         self.tags = tags
         self.text = text
-        self.off = off
+        self.off = off  # this item's place in it's parent list
         self.pcid = pcid
         self.pid = pid
         self.cid = cid
         self.id = id_
+        self.children = []
+        if self.parent:
+            self.parent.children.append(self)
 
     def data(self):
         return {
@@ -116,22 +130,63 @@ class TestLine(object):
         }
 
 
+root = TestLine(parent=None, pid=0, text=ROOT_TEXT)
+
+
+class ParentStackItem(object):
+    def __init__(self, test_line=None, indent=-1):
+        if test_line is None:
+            test_line = TestLine()
+        self.indent = indent
+        self.test_line = test_line
+
+
+class CaseInfoListItem(object):
+    def __init__(self, case_item=None, parent=None, offset=0):
+        # if case_item is None:
+        #     case_item = TestLine(cid=-1)
+        # if parent is None:
+        #     parent = TestLine(cid=-1)
+        # if parent.cid is -1 or case_item.cid is 1:
+        #     raise ValueError("parent and case item must be specified. locals: {locals}".format(locals=str(locals())))
+        self.offset = offset
+        self.parent = parent
+        self.case_item = case_item
+
+
 class ScriptBuilder(object):
-    def __init__(self, text=None, **kwargs):
+    def __init__(self, text=None):
         self.text = coerce_text_to_lines(text=text)
-        self.tests = []
+        self.tests = [root]
         self.cid = 0
-        self.previousTestLine = TestLine()
+        self.previousTestLine = root
         self.parents = []
+        self.last_indent = 0
+        self.inserts = []
+        # self.new_case_roots = []
 
     def build(self):
         for line in self.text:
             self.cid += 1
             # test = TestLine(text=line, cid=self.cid)
             test = self._build_test_line(line=line)
-            self.tests.append(test.data())
+            self.tests.append(test)
         # self.tests.reverse()
-        return self.tests
+        self._prep_for_export()
+        return self.inserts
+
+    def _prep_for_export(self):
+        case_info_list = []
+        self.tests.remove(root)
+        for test in self.tests:
+            case_info_list.append(
+                CaseInfoListItem(case_item=test, parent=test.parent, offset=test.parent.children.index(test)))
+
+        for case in case_info_list:
+            case.case_item.pid = case.parent.id
+            case.case_item.pcid = case.parent.cid
+            case.case_item.off = case.offset
+            self.inserts.append(case.case_item.data())
 
     def _current_parent(self):
         try:
@@ -142,19 +197,35 @@ class ScriptBuilder(object):
     def _build_test_line(self, line=None):
         trimmed_line = line.lstrip()
         trim_length = len(line) - len(trimmed_line)
-        offset = trim_length % 4
-        test = TestLine(text=trimmed_line, cid=self.previousTestLine.cid + 1, off=offset)
-        _current_parent = self._current_parent()
-        if _current_parent is None:
-            self.parents.append(test)
-        elif trimmed_line.startswith("Feature") or trimmed_line.startswith("Scenario"):
-            if _current_parent.text.startswith("Scenario"):
+        # offset = trim_length % 4  # this is wrong, but works. ish
+
+        indent = trim_length
+        if indent > self.last_indent:
+            self.parents.append(ParentStackItem(test_line=self.previousTestLine, indent=self.last_indent))
+        elif indent < self.last_indent:
+            while True:
+                if indent > self._current_parent().indent:
+                    break
                 self.parents.pop()
-            self.parents.append(test)
-        _current_parent = self._current_parent()
-        if test is not _current_parent:
-            test.pcid = _current_parent.cid
-            test.pid = _current_parent.cid
+        _parent = self._current_parent()  # .test_line
+        if _parent:
+            _parent = _parent.test_line
+        test = TestLine(parent=_parent, text=trimmed_line, cid=self.previousTestLine.cid + 1, off=-1)
+        self.tests.append(test)
+        # if not _parent:
+        #     self.new_case_roots.append(test)
+
+        # _current_parent = self._current_parent()
+        # if _current_parent is None:
+        #     self.parents.append(test)
+        # elif trimmed_line.startswith("Feature") or trimmed_line.startswith("Scenario"):
+        #     if _current_parent.text.startswith("Scenario"):
+        #         self.parents.pop()
+        #     self.parents.append(test)
+        # _current_parent = self._current_parent()
+        # if test is not _current_parent:
+        #     test.pcid = _current_parent.cid
+        #     test.pid = _current_parent.cid
         self.previousTestLine = test
         return test
 
@@ -163,7 +234,9 @@ if __name__ == '__main__':
     import os
     import json
     from testpad.statics import User, Project
-    # example file from https://github.com/cucumber/cucumber-jvm/blob/master/compatibility/src/test/resources/features/examples-tables/examples-tables.feature
+
+    # example file from
+    # https://github.com/cucumber/cucumber-jvm/blob/master/compatibility/src/test/resources/features/examples-tables/examples-tables.feature
     test_text = """Feature: Examples Tables
   Sometimes it can be desireable to run the same scenario multiple times
   with different data each time. This can be done by placing an Examples
