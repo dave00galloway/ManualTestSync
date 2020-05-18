@@ -51,7 +51,7 @@ class TestLine(object):
 
     @classmethod
     def get_root(cls):
-        root = TestLine(parent=None, pid=None, pcid=None, cid=0, text=ROOT_TEXT)
+        root = TestLine(parent=None, pid=None, pcid=None, cid=0, id_=0, text=ROOT_TEXT)
         return root
 
 
