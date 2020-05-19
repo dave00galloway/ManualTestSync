@@ -5,9 +5,9 @@ from testpad import authentication, statics
 
 def create_folder(user=None, project=None, targetfolder=None, name=None, **kwargs):
     project, user = statics.set_project_user(project=project, user=user)
-    if targetfolder is None or name is None:
+    if name is None:
         raise ValueError(
-            "user, project, targetfolder and name must be specified. {locals}".format(locals=str(locals())))
+            "user, project, and name must be specified. {locals}".format(locals=str(locals())))
 
     new_folder = _create_new_folder(user=user, project=project, parent=targetfolder, **kwargs)
     folder_id = new_folder["data"]["id"]
@@ -16,7 +16,7 @@ def create_folder(user=None, project=None, targetfolder=None, name=None, **kwarg
                                 name=name,
                                 **kwargs)
 
-    return new_folder
+    return folder_id
 
 
 def _rename_folder(user=None, project=None, folder_id=None, name=None, **kwargs):
@@ -33,6 +33,8 @@ def _rename_folder(user=None, project=None, folder_id=None, name=None, **kwargs)
 
 
 def _create_new_folder(user=None, project=None, parent=None, **kwargs):
+    if parent is None:
+        parent = 'f0'
     headers = authentication.testpad_headers(user=user,
                                              referer="{url}/project/{project}/folder/{folder}/".format(
                                                  url=user.testpad_url,

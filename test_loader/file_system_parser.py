@@ -1,7 +1,13 @@
 import os
 
 
-def list_files(dir_):
+def get_suites(dir_=None):
+    if dir_ is None:
+        raise ValueError("dir_cannot be None")
+    return structure_files(file_tuples=list_files(dir_=dir_))
+
+
+def list_files(dir_=None):
     r = []
     for root, dirs, files in os.walk(dir_):
         for name in files:
