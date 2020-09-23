@@ -17,13 +17,15 @@ class Exporter(object):
         for suite in suites:
             feature = self._find_feature(suite)
             print(feature.suite_name, feature.feature_name, feature.scenarios)
+            scenarios = feature.get_scenarios()
         return suites
 
     @staticmethod
     def find_test_suites(html):
         return html.body.find_all('div', class_='scriptSection withBreaks page')
 
-    def _find_feature(self, suite):
+    @staticmethod
+    def _find_feature(suite):
         suite_name = suite.find('div', class_="heading").find('h2').text
         feature_name = suite.find('div', class_="heading").find('h1').text
         scenarios = suite.find('table', class_="scriptGrid")
@@ -35,3 +37,15 @@ class ExportableFeature(object):
         self.scenarios = scenarios
         self.feature_name = feature_name
         self.suite_name = suite_name
+        self.parsed_scenarios = []
+
+    def get_scenarios(self):
+        rows = self.scenarios.find_all('tr')
+        for row in rows:
+            print(row.text)
+
+
+class ExportableScenario(object):
+    def __init__(self, scenario_title=None, steps=None):
+        self.steps = steps
+        self.scenario_title = scenario_title
