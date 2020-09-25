@@ -16,7 +16,7 @@ def report_with_steps(user=None, project=None, report_folder=None, name=None, au
                                              referer="{url}/project/{project}/".format(url=user.testpad_url,
                                                                                        project=project))
     response = requests.get(
-        '{url}/project/{project}/folder/{folder}/report/S'.format(url=user.testpad_url, project=project,
-                                                                  folder=report_folder), headers=headers)
+        '{url}/project/{project}/folder/{folder}/report/Sb'.format(url=user.testpad_url, project=project,
+                                                                   folder=report_folder), headers=headers)
     assert response.status_code is 200
     return response.content
