@@ -10,8 +10,10 @@ from testpad.reports import report_with_steps
 
 
 class Exporter(object):
-    def __init__(self, user=None, project=None, report_folder=None, checkout_dir=None):
-        self.checkout_dir = checkout_dir
+    def __init__(self, user=None, project=None, report_folder=None, out_dir=None):
+        if out_dir is None or user is None or project is None or report_folder is None:
+            raise ValueError(str(locals()))
+        self.out_dir = out_dir
         self.report_folder = report_folder
         self.project = project
         self.user = user
@@ -19,6 +21,16 @@ class Exporter(object):
     def export_tests(self):
         content = report_with_steps(user=self.user, project=self.project, report_folder=self.report_folder)
         suites = self.parse_tests_to_gherkin(content)
+        for suite in suites:
+            # suite is the key and is atuple of the full path to the suite and the feature name
+            # todo: use the key to get the value from suites and write the text to a feature file
+            # create the path for the feature file at self.out_dir + path
+            # (the suite with quoted strings for the suite and feature names, but with spaces removed around the pathsep)
+            for gherkin_file in suite.gherkin_files:
+                with open(self.out_dir, 'wb') as feature_file:
+                    for line in gherkin_file:
+                        feature_file.write(bytes(str(line).replace(os.linesep, ' '), encoding='utf-8'))
+                        feature_file.write(bytes(os.linesep, encoding='utf-8'))
         return suites
 
     def parse_tests_to_gherkin(self, content):
@@ -26,7 +38,7 @@ class Exporter(object):
         suites = self.find_test_suites(html)
         gherkin_suites = {}
         for suite in suites:
-            gherkin_files = {}
+            # gherkin_files = {}
             feature = self._find_feature(suite)
             # print(feature.suite_name, feature.feature_name)  # , feature.scenarios)
             feature_text = feature.get_feature_text()
@@ -37,12 +49,12 @@ class Exporter(object):
                     temp_file.write(bytes(os.linesep, encoding='utf-8'))
                 temp_file.seek(0)
                 try:
-                    gherkin_file = GherkinFeature(file=temp_file.name)
+                    GherkinFeature(file=temp_file.name)
                 except GherkinError as e:
                     raise GherkinError("unable to parse / pickle feature {feature} in suite {suite}".format(
                         feature=feature.feature_name, suite=feature.suite_name)) from e
-                gherkin_files[feature.feature_name] = gherkin_file
-            gherkin_suites[feature.suite_name] = gherkin_files
+                # gherkin_files[feature.feature_name] = gherkin_file
+            gherkin_suites[(feature.suite_name, feature.feature_name)] = feature_text
         return gherkin_suites
 
     @staticmethod
