@@ -1,4 +1,5 @@
 import os
+import pathlib
 import tempfile
 
 from bs4 import BeautifulSoup
@@ -14,48 +15,49 @@ class Exporter(object):
         if out_dir is None or user is None or project is None or report_folder is None:
             raise ValueError(str(locals()))
         self.out_dir = out_dir
+
+        pathlib.Path(out_dir).mkdir(parents=True, exist_ok=True)
         self.report_folder = report_folder
         self.project = project
         self.user = user
 
     def export_tests(self):
-        content = report_with_steps(user=self.user, project=self.project, report_folder=self.report_folder)
-        suites = self.parse_tests_to_gherkin(content)
-        for suite in suites:
-            # suite is the key and is atuple of the full path to the suite and the feature name
-            # todo: use the key to get the value from suites and write the text to a feature file
-            # create the path for the feature file at self.out_dir + path
-            # (the suite with quoted strings for the suite and feature names, but with spaces removed around the pathsep)
-            for gherkin_file in suite.gherkin_files:
-                with open(self.out_dir, 'wb') as feature_file:
-                    for line in gherkin_file:
-                        feature_file.write(bytes(str(line).replace(os.linesep, ' '), encoding='utf-8'))
-                        feature_file.write(bytes(os.linesep, encoding='utf-8'))
+        suites = self.parse_tests_to_gherkin(
+            report_with_steps(user=self.user, project=self.project, report_folder=self.report_folder))
+        for key, gherkin_feature in suites.items():
+            suite_dir = "{out_dir}{p}{suite_name}".format(out_dir=self.out_dir, p=os.path.sep,
+                                                          suite_name=str(key[0]).replace(' ', ''))
+            pathlib.Path(suite_dir).mkdir(parents=True, exist_ok=True)
+            feature_file_path = "{suite_dir}{p}{feature_name}.feature".format(suite_dir=suite_dir, p=os.path.sep,
+                                                                              feature_name=str(key[1]).replace(' ', '')
+                                                                              .replace(os.path.sep, '_'))
+            with open(feature_file_path, 'wb') as feature_file:
+                self.write_gherkin_file(feature_text=gherkin_feature.raw_text, out_file=feature_file)
+
         return suites
 
     def parse_tests_to_gherkin(self, content):
-        html = BeautifulSoup(content, "html.parser")
-        suites = self.find_test_suites(html)
+        suites = self.find_test_suites(BeautifulSoup(content, "html.parser"))
         gherkin_suites = {}
         for suite in suites:
-            # gherkin_files = {}
             feature = self._find_feature(suite)
-            # print(feature.suite_name, feature.feature_name)  # , feature.scenarios)
             feature_text = feature.get_feature_text()
-            # print(feature_text)
             with tempfile.NamedTemporaryFile() as temp_file:
-                for line in feature_text:
-                    temp_file.write(bytes(str(line).replace(os.linesep, ' '), encoding='utf-8'))
-                    temp_file.write(bytes(os.linesep, encoding='utf-8'))
+                self.write_gherkin_file(feature_text=feature_text, out_file=temp_file)
                 temp_file.seek(0)
                 try:
-                    GherkinFeature(file=temp_file.name)
+                    gherkin_feature = GherkinFeature(file=temp_file.name, raw_text=feature_text)
                 except GherkinError as e:
                     raise GherkinError("unable to parse / pickle feature {feature} in suite {suite}".format(
                         feature=feature.feature_name, suite=feature.suite_name)) from e
-                # gherkin_files[feature.feature_name] = gherkin_file
-            gherkin_suites[(feature.suite_name, feature.feature_name)] = feature_text
+            gherkin_suites[(feature.suite_name, feature.feature_name)] = gherkin_feature
         return gherkin_suites
+
+    @staticmethod
+    def write_gherkin_file(feature_text=None, out_file=None):
+        for line in feature_text:
+            out_file.write(bytes(str(line).replace(os.linesep, 'And '), encoding='utf-8'))
+            out_file.write(bytes(os.linesep, encoding='utf-8'))
 
     @staticmethod
     def find_test_suites(html):
@@ -93,9 +95,8 @@ class GherkinError(Exception):
 
 
 class GherkinFeature(object):
-    def __init__(self, file=None):
-        super().__init__()
-
+    def __init__(self, file=None, raw_text=None):
+        self.raw_text = raw_text
         self.file = file
         parser = Parser()
         scanner = TokenScanner(self.file)
@@ -104,8 +105,3 @@ class GherkinFeature(object):
             self.pickles = compiler.compile(self.gherkin_document)
         except Exception as e:
             raise GherkinError("unable to parse / pickle doc {doc}".format(doc=self.file)) from e
-
-# class ExportableScenario(object):
-#     def __init__(self, scenario_title=None, steps=None):
-#         self.steps = steps
-#         self.scenario_title = scenario_title

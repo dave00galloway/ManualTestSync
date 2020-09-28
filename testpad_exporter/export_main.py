@@ -26,7 +26,7 @@ def main():
 
     if out_dir.startswith("~"):
         home = os.path.expanduser("~")
-        out_dir = os.path.join(home, out_dir.replace("~/", '', 1), str(time.time()))
+        out_dir = os.path.join(home, out_dir.replace("~/", '', 1), str(time.time()).replace('.', ''))
 
     Project.set(report_project)
     User.set(authentication.authenticate())
