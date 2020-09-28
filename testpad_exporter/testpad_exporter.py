@@ -10,7 +10,7 @@ from gherkin.token_scanner import TokenScanner
 from testpad.reports import report_with_steps
 
 
-class Exporter(object):
+class TestpadExporter(object):
     def __init__(self, user=None, project=None, report_folder=None, out_dir=None):
         if out_dir is None or user is None or project is None or report_folder is None:
             raise ValueError(str(locals()))

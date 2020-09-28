@@ -5,7 +5,8 @@ from argparse import RawTextHelpFormatter
 
 from testpad import authentication
 from testpad.statics import User, Project
-from testpad_exporter.exporter import Exporter
+from testpad_exporter.test_rails_importer import TestRailXMLImporter
+from testpad_exporter.testpad_exporter import TestpadExporter
 
 
 def main():
@@ -31,8 +32,10 @@ def main():
     Project.set(report_project)
     User.set(authentication.authenticate())
 
-    export = Exporter(user=User.get(), project=Project.get(), report_folder=report_folder, out_dir=out_dir)
-    export.export_tests()
+    export = TestpadExporter(user=User.get(), project=Project.get(), report_folder=report_folder, out_dir=out_dir)
+    suites = export.export_tests()
+    importer = TestRailXMLImporter(out_dir=out_dir, suites=suites)
+    importer.create_sections()
     # print(data)
 
 
