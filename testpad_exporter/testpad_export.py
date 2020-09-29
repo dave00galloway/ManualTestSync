@@ -106,5 +106,7 @@ class GherkinFeature(object):
         try:
             self.gherkin_document = parser.parse(scanner)
             self.pickles = compiler.compile(self.gherkin_document)
+            if len(self.pickles) < 1:
+                raise GherkinError("no pickles found!")
         except Exception as e:
             raise GherkinError("unable to parse / pickle doc {doc}".format(doc=self.file)) from e
