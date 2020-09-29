@@ -54,8 +54,8 @@ class TestRailXMLImporter(object):
                          references=", ".join([t["name"] for t in scenario["tags"]]))
         for i, step in enumerate(scenario["steps"]):
             step_argument = step["argument"] if "argument" in dict(step).keys() else None
-            step_ = Step(index=i + 1, content="{keyword} {text}".format(keyword=step["keyword"], text=step['text'],
-                                                                        step_argument=step_argument))
+            step_ = Step(index=i + 1, content="{keyword} {text}".format(keyword=step["keyword"], text=step['text']),
+                         step_argument=step_argument)
             scenario_.steps.append(step_)
         if outline:
             TestRailXMLImporter.add_examples_to_scenario(case=scenario_, examples=scenario["examples"],
@@ -146,7 +146,7 @@ class Case(object):
 
 
 class Step(object):
-    def __init__(self, index=None, content=None, expected="", step_argument=None, **kwargs):
+    def __init__(self, index=None, content=None, expected="", step_argument=None):
         super().__init__()
         if index is None or content is None:
             raise ValueError("Step index and content cannot be None. {locals}".format(locals=str(locals())))
