@@ -16,7 +16,7 @@ class TestRailXMLImporter(object):
         for key, gherkin_feature in self.suites.items():
             section_name = key[0]
             feature_section_name = key[1]
-            if current_section is None or section_name is not current_section.name:
+            if current_section is None or section_name != current_section.name:
                 current_section = Section(name=key[0])
                 self.sections.append(current_section)
             feature_section = Section(name=feature_section_name)
@@ -53,7 +53,9 @@ class TestRailXMLImporter(object):
         scenario_ = Case(title=": ".join([scenario_type, scenario["name"]]),
                          references=", ".join([t["name"] for t in scenario["tags"]]))
         for i, step in enumerate(scenario["steps"]):
-            step_ = Step(index=i + 1, content="{keyword} {text}".format(keyword=step["keyword"], text=step['text']))
+            step_argument = step["argument"] if "argument" in dict(step).keys() else None
+            step_ = Step(index=i + 1, content="{keyword} {text}".format(keyword=step["keyword"], text=step['text'],
+                                                                        step_argument=step_argument))
             scenario_.steps.append(step_)
         if outline:
             TestRailXMLImporter.add_examples_to_scenario(case=scenario_, examples=scenario["examples"],
@@ -115,6 +117,8 @@ class TestRailXMLImporter(object):
             xml_content.text = step.content
             xml_exp = ET.SubElement(xml_step, "expected")
             xml_exp.text = step.expected
+            if step.step_argument:
+                xml_exp.text = "{text}{s}{arg}".format(text=xml_exp.text, s=os.path.sep, arg=step.step_argument)
 
 
 class Section(object):
@@ -142,13 +146,14 @@ class Case(object):
 
 
 class Step(object):
-    def __init__(self, index=None, content=None, expected="", **kwargs):
+    def __init__(self, index=None, content=None, expected="", step_argument=None, **kwargs):
         super().__init__()
         if index is None or content is None:
             raise ValueError("Step index and content cannot be None. {locals}".format(locals=str(locals())))
         self.expected = expected
         self.content = content
         self.index = index
+        self.step_argument = step_argument
 
 
 class GherkinElementException(Exception):
