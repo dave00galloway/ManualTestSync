@@ -128,8 +128,17 @@ class TestRailXMLImporter(object):
     def add_step_argument(step=None, xml_step=None, xml_content=None, xml_exp=None):
         if step.step_argument:
             if step.step_argument["type"] is 'DocString':
-                xml_exp.text = "{text}{s}{arg}".format(text=xml_exp.text, s=os.path.sep,
+                xml_exp.text = "{text}{s}{arg}".format(text=xml_exp.text, s=os.linesep,
                                                        arg=step.step_argument["content"])
+                return
+            if step.step_argument["type"] is 'DataTable':
+                table_text = "||"
+                for row in step.step_argument["rows"]:
+                    table_row = "|".join([cell["value"] for cell in row["cells"]])
+                    table_text = "{table_text}|{table_row}{s}".format(table_text=table_text, table_row=table_row,
+                                                                      s=os.linesep)
+                xml_content.text = "{text}{s}{table_text}".format(text=xml_content.text, s=os.linesep,
+                                                                  table_text=table_text)
                 return
             raise UnsupportedStepArgument(step.step_argument)
 
