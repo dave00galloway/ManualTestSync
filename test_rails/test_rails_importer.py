@@ -49,7 +49,7 @@ class TestRailXMLImporter(object):
 
     @staticmethod
     def add_scenario_to_feature(scenario=None, feature_section=None, outline=False):
-        scenario_type = "Scenario Outline:" if outline else "Scenario: "
+        scenario_type = "Scenario Outline" if outline else "Scenario"
         scenario_ = Case(title=": ".join([scenario_type, scenario["name"]]),
                          references=", ".join([t["name"] for t in scenario["tags"]]))
         for i, step in enumerate(scenario["steps"]):

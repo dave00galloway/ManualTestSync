@@ -65,8 +65,11 @@ class TestpadExporter(object):
 
     @staticmethod
     def _find_feature(suite):
-        suite_name = suite.find('div', class_="heading").find('h3').text
-        feature_name = suite.find('div', class_="heading").find('h1').text
+        heading = suite.find('div', class_="heading")
+        suite_name = heading.find('h3').text
+        if len(str(suite_name).strip()) == 0:
+            suite_name = heading.find('h2').text
+        feature_name = heading.find('h1').text
         scenarios = suite.find('table', class_="scriptGrid").tbody
         return GherkinFeatureCandidate(suite_name=suite_name, feature_name=feature_name, scenarios=scenarios)
 
