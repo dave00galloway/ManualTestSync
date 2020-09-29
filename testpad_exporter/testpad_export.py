@@ -41,7 +41,10 @@ class TestpadExporter(object):
         gherkin_suites = {}
         for suite in suites:
             feature = self._find_feature(suite)
+            if feature.feature_name == "Upgrade Tests":
+                pass
             feature_text = feature.get_feature_text()
+
             with tempfile.NamedTemporaryFile() as temp_file:
                 self.write_gherkin_file(feature_text=feature_text, out_file=temp_file)
                 temp_file.seek(0)
@@ -56,8 +59,15 @@ class TestpadExporter(object):
     @staticmethod
     def write_gherkin_file(feature_text=None, out_file=None):
         for line in feature_text:
-            out_file.write(bytes(str(line).replace(os.linesep, 'And '), encoding='utf-8'))
-            out_file.write(bytes(os.linesep, encoding='utf-8'))
+            split_lines = str(line).split(os.linesep)
+            for i, split_line in enumerate(split_lines):
+                if i > 0 and len(split_line.strip()) > 0:
+                    if not split_line.startswith(("Given", "When", "Then", "And", "given", "when", "then", "and")):
+                        split_line = "And {sl}".format(sl=split_line)
+                    if split_line[0].islower():
+                        split_line = split_line.capitalize()
+                out_file.write(bytes(split_line, encoding='utf-8'))
+                out_file.write(bytes(os.linesep, encoding='utf-8'))
 
     @staticmethod
     def find_test_suites(html):
