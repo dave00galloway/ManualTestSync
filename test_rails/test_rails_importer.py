@@ -3,6 +3,10 @@ import os
 import xml.etree.ElementTree as ET
 
 
+class UnsupportedStepArgument(Exception):
+    pass
+
+
 class TestRailXMLImporter(object):
     def __init__(self, out_dir=None, suites=None, **kwargs):
         if out_dir is None or suites is None:
@@ -117,8 +121,17 @@ class TestRailXMLImporter(object):
             xml_content.text = step.content
             xml_exp = ET.SubElement(xml_step, "expected")
             xml_exp.text = step.expected
-            if step.step_argument:
-                xml_exp.text = "{text}{s}{arg}".format(text=xml_exp.text, s=os.path.sep, arg=step.step_argument)
+            TestRailXMLImporter.add_step_argument(step=step, xml_content=xml_content, xml_step=xml_step,
+                                                  xml_exp=xml_exp)
+
+    @staticmethod
+    def add_step_argument(step=None, xml_step=None, xml_content=None, xml_exp=None):
+        if step.step_argument:
+            if step.step_argument["type"] is 'DocString':
+                xml_exp.text = "{text}{s}{arg}".format(text=xml_exp.text, s=os.path.sep,
+                                                       arg=step.step_argument["content"])
+                return
+            raise UnsupportedStepArgument(step.step_argument)
 
 
 class Section(object):
