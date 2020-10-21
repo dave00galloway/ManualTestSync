@@ -1,3 +1,5 @@
+import csv
+import dataclasses
 from dataclasses import dataclass
 from enum import Enum, auto
 
@@ -142,4 +144,26 @@ if __name__ == '__main__':
                  scenario="all the scenario text", section_id="MySection",
                  section_desc="feature stuff and the background", type_id=Type.Regression, test_type=TypeOfTest.Manual)
     print(row)
-    row.cases_title.value = "n ew tile"
+    # row.cases_title.value = "n ew tile"
+    print(dataclasses.asdict(row).keys())
+    with open("/Users/dave/tmp/export.csv", 'w', newline='') as csv_file:
+        writer = csv.DictWriter(csv_file,
+                                fieldnames=[csv_column["csv_name"] for csv_column in dataclasses.asdict(row).values()])
+        writer.writeheader()
+        rowdict = {
+            row.cases_title.csv_name: row.cases_title.value,
+            row.cases_custom_automation_status.csv_name: row.cases_custom_automation_status.value,
+            row.cases_custom_automation_type.csv_name: row.cases_custom_automation_type.value,
+            row.cases_custom_preconds.csv_name: row.cases_custom_preconds.value,
+            row.cases_estimate.csv_name: row.cases_estimate.value,
+            row.cases_custom_expected.csv_name: row.cases_custom_expected.value,
+            row.cases_custom_platform.csv_name: row.cases_custom_platform.value,
+            row.cases_priority_id.csv_name: row.cases_priority_id.value,
+            row.cases_refs.csv_name: row.cases_refs.value,
+            row.cases_custom_scenario.csv_name: row.cases_custom_scenario.value,
+            row.cases_section_id.csv_name: row.cases_section_id.value,
+            row.cases_section_desc.csv_name: row.cases_section_desc.value,
+            row.cases_type_id.csv_name: row.cases_type_id.value,
+            row.cases_custom_test_type.csv_name: row.cases_custom_test_type.value
+        }
+        writer.writerow(rowdict)
