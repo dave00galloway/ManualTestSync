@@ -3,7 +3,7 @@ import os
 import time
 from argparse import RawTextHelpFormatter
 
-from test_rails.test_rails_importer import TestRailXMLImporter
+from test_rails.xml_importer import TestRailXMLImporter
 from testpad import authentication
 from testpad.statics import User, Project
 from testpad_exporter.testpad_export import TestpadExporter

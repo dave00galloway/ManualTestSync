@@ -1,13 +1,7 @@
 import os
 
-import xml.etree.ElementTree as ET
 
-
-class UnsupportedStepArgument(Exception):
-    pass
-
-
-class TestRailXMLImporter(object):
+class TestRailImporter(object):
     def __init__(self, out_dir=None, suites=None, **kwargs):
         if out_dir is None or suites is None:
             raise ValueError("out_dir and suites cannot be None. {locals}".format(locals=str(locals())))
@@ -52,21 +46,6 @@ class TestRailXMLImporter(object):
                 description=feature_section.description, s=os.linesep, keyword=step["keyword"], text=step["text"])
 
     @staticmethod
-    def add_scenario_to_feature(scenario=None, feature_section=None, outline=False):
-        scenario_type = "Scenario Outline" if outline else "Scenario"
-        scenario_ = Case(title=": ".join([scenario_type, scenario["name"]]),
-                         references=", ".join([t["name"] for t in scenario["tags"]]))
-        for i, step in enumerate(scenario["steps"]):
-            step_argument = step["argument"] if "argument" in dict(step).keys() else None
-            step_ = Step(index=i + 1, content="{keyword} {text}".format(keyword=step["keyword"], text=step['text']),
-                         step_argument=step_argument)
-            scenario_.steps.append(step_)
-        if outline:
-            TestRailXMLImporter.add_examples_to_scenario(case=scenario_, examples=scenario["examples"],
-                                                         step_no=len(scenario_.steps) + 1)
-        feature_section.cases.append(scenario_)
-
-    @staticmethod
     def add_examples_to_scenario(case=None, examples=None, step_no=None):
         content_ = ""
         for example in examples:
@@ -82,65 +61,24 @@ class TestRailXMLImporter(object):
         step_ = Step(index=step_no, content=content_)
         case.steps.append(step_)
 
-    def create_xml_for_import(self):
-        xml_root_section = ET.Element('sections')
-        for section in self.sections:
-            self.add_xml_section(section_object=section, parent=xml_root_section)
-
-        with open("{out}{p}TestRailExport.xml".format(out=self.out_dir, p=os.path.sep), mode='wb') as export_file:
-            export_file.write(ET.tostring(xml_root_section))
-
-    def add_xml_section(self, section_object=None, parent=None):
-        xml_section = ET.SubElement(parent, 'section')
-        name = ET.SubElement(xml_section, "name")
-        name.text = section_object.name
-        description = ET.SubElement(xml_section, "description")
-        description.text = section_object.description
-        for child_section in section_object.sections:
-            self.add_xml_section(section_object=child_section, parent=xml_section)
-        self.add_xml_cases_to_section(section_object, xml_section)
-
-    def add_xml_cases_to_section(self, section=None, xml_section=None):
-        for case in section.cases:
-            xml_case = ET.SubElement(xml_section, 'case')
-            title = ET.SubElement(xml_case, "title")
-            title.text = case.title
-            references = ET.SubElement(xml_case, "references")
-            references.text = case.references
-            xml_custom = ET.SubElement(xml_case, 'custom')
-            self.add_xml_steps_to_case(steps=case.steps, xml_custom=xml_custom)
-
     @staticmethod
-    def add_xml_steps_to_case(steps=None, xml_custom=None):
-        xml_steps = ET.SubElement(xml_custom, 'steps')
-        for step in steps:
-            xml_step = ET.SubElement(xml_steps, 'step')
-            xml_index = ET.SubElement(xml_step, 'index')
-            xml_index.text = str(step.index)
-            xml_content = ET.SubElement(xml_step, 'content')
-            xml_content.text = step.content
-            xml_exp = ET.SubElement(xml_step, "expected")
-            xml_exp.text = step.expected
-            TestRailXMLImporter.add_step_argument(step=step, xml_content=xml_content, xml_step=xml_step,
-                                                  xml_exp=xml_exp)
+    def add_scenario_to_feature(scenario=None, feature_section=None, outline=False):
+        scenario_type = "Scenario Outline" if outline else "Scenario"
+        scenario_ = Case(title=": ".join([scenario_type, scenario["name"]]),
+                         references=", ".join([t["name"] for t in scenario["tags"]]))
+        for i, step in enumerate(scenario["steps"]):
+            step_argument = step["argument"] if "argument" in dict(step).keys() else None
+            step_ = Step(index=i + 1, content="{keyword} {text}".format(keyword=step["keyword"], text=step['text']),
+                         step_argument=step_argument)
+            scenario_.steps.append(step_)
+        if outline:
+            TestRailImporter.add_examples_to_scenario(case=scenario_, examples=scenario["examples"],
+                                                      step_no=len(scenario_.steps) + 1)
+        feature_section.cases.append(scenario_)
 
-    @staticmethod
-    def add_step_argument(step=None, xml_step=None, xml_content=None, xml_exp=None):
-        if step.step_argument:
-            if step.step_argument["type"] is 'DocString':
-                xml_exp.text = "{text}{s}{arg}".format(text=xml_exp.text, s=os.linesep,
-                                                       arg=step.step_argument["content"])
-                return
-            if step.step_argument["type"] is 'DataTable':
-                table_text = "||"
-                for row in step.step_argument["rows"]:
-                    table_row = "|".join([cell["value"] for cell in row["cells"]])
-                    table_text = "{table_text}|{table_row}{s}".format(table_text=table_text, table_row=table_row,
-                                                                      s=os.linesep)
-                xml_content.text = "{text}{s}{table_text}".format(text=xml_content.text, s=os.linesep,
-                                                                  table_text=table_text)
-                return
-            raise UnsupportedStepArgument(step.step_argument)
+
+class UnsupportedStepArgument(Exception):
+    pass
 
 
 class Section(object):
