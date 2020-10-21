@@ -77,10 +77,6 @@ class TestRailImporter(object):
         feature_section.cases.append(scenario_)
 
 
-class UnsupportedStepArgument(Exception):
-    pass
-
-
 class Section(object):
     def __init__(self, name=None, description="", **kwargs):
         super().__init__()
@@ -117,4 +113,8 @@ class Step(object):
 
 
 class GherkinElementException(Exception):
+    pass
+
+
+class UnsupportedStepArgument(Exception):
     pass
