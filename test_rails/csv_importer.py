@@ -49,8 +49,8 @@ class TestRailCSVImporter(TestRailImporter):
 
     def parse_section(self, section_object: Section = None, parent: Section = None):
         for child_section in section_object.sections:
-            self.parse_section(section_object=child_section, parent=parent)
-        self.add_csv_cases(section_object)
+            self.parse_section(section_object=child_section, parent=section_object)
+        self.add_csv_cases(section_object=section_object, parent_section=parent)
 
     def add_csv_cases(self, section_object: Section = None, parent_section: Section = None):
         for case in section_object.cases:
