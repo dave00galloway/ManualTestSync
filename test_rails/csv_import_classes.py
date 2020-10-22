@@ -102,7 +102,7 @@ class CsvRow(object):
         self.cases_section_desc = CsvColumn(
             test_rails_name="cases_section_desc",
             csv_name="Section Description",
-            value=section_desc)
+            value="<gherkin>{section_desc}</gherkin>".format(section_desc=section_desc))
         self.cases_type_id = CsvColumn(
             test_rails_name="cases_type_id",
             csv_name="Type",

@@ -66,7 +66,7 @@ class TestRailImporter(object):
     def add_scenario_to_feature(scenario=None, feature_section=None, outline=False):
         scenario_type = "Scenario Outline" if outline else "Scenario"
         scenario_ = Case(title=": ".join([scenario_type, scenario["name"]]),
-                         references=", ".join([t["name"] for t in scenario["tags"]]))
+                         references=", ".join([str(t["name"]).replace("@", "") for t in scenario["tags"]]))
         for i, step in enumerate(scenario["steps"]):
             step_argument = step["argument"] if "argument" in dict(step).keys() else None
             step_ = Step(index=i + 1, content="{keyword} {text}".format(keyword=step["keyword"], text=step['text']),
