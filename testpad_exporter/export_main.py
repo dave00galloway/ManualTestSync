@@ -3,7 +3,7 @@ import os
 import time
 from argparse import RawTextHelpFormatter
 
-from test_rails.xml_importer import TestRailXMLImporter
+from test_rails.csv_importer import TestRailCSVImporter
 from testpad import authentication
 from testpad.statics import User, Project
 from testpad_exporter.testpad_export import TestpadExporter
@@ -35,9 +35,12 @@ def main():
     export = TestpadExporter(user=User.get(), project=Project.get(), report_folder=report_folder, out_dir=out_dir)
     print(out_dir)
     suites = export.export_tests()
-    importer = TestRailXMLImporter(out_dir=out_dir, suites=suites)
+    # importer = TestRailXMLImporter(out_dir=out_dir, suites=suites)
+    # importer.create_sections()
+    # importer.create_xml_for_import()
+    importer = TestRailCSVImporter(out_dir=out_dir, suites=suites)
     importer.create_sections()
-    importer.create_xml_for_import()
+    importer.create_csv_for_import()
     # print(data)
 
 

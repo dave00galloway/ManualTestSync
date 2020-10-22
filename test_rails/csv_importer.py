@@ -1,169 +1,80 @@
 import csv
 import dataclasses
-from dataclasses import dataclass
-from enum import Enum, auto
+import os
+from typing import List
 
-from test_rails.importer import TestRailImporter
+from test_rails.csv_import_classes import CsvRow, Priority, Type, TypeOfTest
+from test_rails.importer import TestRailImporter, Section
 
 
 class TestRailCSVImporter(TestRailImporter):
-    pass
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.csv_cases = []  # type: List[CsvRow]
+        self.writer = None
 
+    def create_csv_for_import(self):
+        for section in self.sections:
+            self.parse_section(section_object=section, parent=None)
+        with open("{out}{p}TestRailExport.csv".format(out=self.out_dir, p=os.path.sep), 'w', newline='') as csv_file:
+            self.writer = self.setup_csv_file(csv_file=csv_file)
+            for case in self.csv_cases:
+                self.add_case_to_csv(case=case)
 
-class AutoPriority(Enum):
-    def _generate_next_value_(self, start, count, last_values):
-        return self
+    def add_case_to_csv(self, case: CsvRow = None):
+        row_dict = {
+            case.cases_title.csv_name: case.cases_title.value,
+            case.cases_custom_automation_status.csv_name: case.cases_custom_automation_status.value,
+            case.cases_custom_automation_type.csv_name: case.cases_custom_automation_type.value,
+            case.cases_custom_preconds.csv_name: case.cases_custom_preconds.value,
+            case.cases_estimate.csv_name: case.cases_estimate.value,
+            case.cases_custom_expected.csv_name: case.cases_custom_expected.value,
+            case.cases_custom_platform.csv_name: case.cases_custom_platform.value,
+            case.cases_priority_id.csv_name: case.cases_priority_id.value,
+            case.cases_refs.csv_name: case.cases_refs.value,
+            case.cases_custom_scenario.csv_name: case.cases_custom_scenario.value,
+            case.cases_section_id.csv_name: case.cases_section_id.value,
+            case.cases_section_desc.csv_name: case.cases_section_desc.value,
+            case.cases_type_id.csv_name: case.cases_type_id.value,
+            case.cases_custom_test_type.csv_name: case.cases_custom_test_type.value
+        }
+        self.writer.writerow(row_dict)
 
+    def setup_csv_file(self, csv_file=None):
+        writer = csv.DictWriter(csv_file,
+                                fieldnames=[csv_column["csv_name"] for csv_column in
+                                            dataclasses.asdict(self.csv_cases[0]).values()])
+        writer.writeheader()
+        return writer
 
-class Priority(AutoPriority):
-    Low = auto()
-    Medium = auto()
-    High = auto()
+    def parse_section(self, section_object: Section = None, parent: Section = None):
+        for child_section in section_object.sections:
+            self.parse_section(section_object=child_section, parent=parent)
+        self.add_csv_cases(section_object)
 
-
-class AutoType(Enum):
-    def _generate_next_value_(self, start, count, last_values):
-        return self
-
-
-class Type(AutoType):
-    Acceptance = auto()
-    Accessibility = auto()
-    Destructive = auto()
-    Functional = auto()
-    Other = auto()
-    Performance = auto()
-    Regression = auto()
-    Security = auto()
-    Smoke_Sanity = auto()
-    Usability = auto()
-
-
-class AutoTypeOfTest(Enum):
-    def _generate_next_value_(self, start, count, last_values):
-        return self
-
-
-class TypeOfTest(AutoTypeOfTest):
-    Manual = auto()
-    Automated = auto()
-    # None=auto()
-
-
-@dataclass
-class CsvColumn(object):
-    test_rails_name: str
-    csv_name: str
-    value: object
-
-
-@dataclass
-class CsvRow(object):
-
-    def __init__(self, title=None, automation_status=None, automation_type=None, preconds=None, estimate=None,
-                 expected=None, platform=None, priority_id=Priority.Medium, refs=None, scenario=None, section_id=None,
-                 section_desc=None, type_id=Type.Regression, test_type=TypeOfTest.Manual):
-        self.cases_title = CsvColumn(
-            test_rails_name="cases_title",
-            csv_name="Title",
-            value=title)
-        self.cases_custom_automation_status = CsvColumn(
-            test_rails_name="cases_custom_automation_status",
-            csv_name="Automation Status",
-            value=automation_status)
-        self.cases_custom_automation_type = CsvColumn(
-            test_rails_name="cases_custom_automation_type",
-            csv_name="Automation Type",
-            value=automation_type)
-        self.cases_custom_preconds = CsvColumn(
-            test_rails_name="cases_custom_preconds",
-            csv_name="Background",
-            value=preconds)
-        self.cases_estimate = CsvColumn(
-            test_rails_name="cases_estimate",
-            csv_name="Estimate",
-            value=estimate)
-        self.cases_custom_expected = CsvColumn(
-            test_rails_name="cases_custom_expected",
-            csv_name="Expected Result",
-            value=expected)
-        self.cases_custom_platform = CsvColumn(
-            test_rails_name="cases_custom_platform",
-            csv_name="Platform",
-            value=platform)
-        self.cases_priority_id = CsvColumn(
-            test_rails_name="cases_priority_id",
-            csv_name="Priority"
-            , value=priority_id)
-        self.cases_refs = CsvColumn(
-            test_rails_name="cases_refs",
-            csv_name="References",
-            value=refs)
-        self.cases_custom_scenario = CsvColumn(
-            test_rails_name="cases_custom_scenario",
-            csv_name="Scenario",
-            value="<gherkin>{scenario}</gherkin>".format(scenario=scenario))
-        self.cases_section_id = CsvColumn(
-            test_rails_name="cases_section_id",
-            csv_name="Section",
-            value=section_id)
-        self.cases_section_desc = CsvColumn(
-            test_rails_name="cases_section_desc",
-            csv_name="Section Description",
-            value=section_desc)
-        self.cases_type_id = CsvColumn(
-            test_rails_name="cases_type_id",
-            csv_name="Type",
-            value=type_id)
-        self.cases_custom_test_type = CsvColumn(
-            test_rails_name="cases_custom_test_type",
-            csv_name="Type of Test",
-            value=test_type)
-
-    cases_title: CsvColumn
-    cases_custom_automation_status: CsvColumn
-    cases_custom_automation_type: CsvColumn
-    cases_custom_preconds: CsvColumn
-    cases_estimate: CsvColumn
-    cases_custom_expected: CsvColumn
-    cases_custom_platform: CsvColumn
-    cases_priority_id: CsvColumn
-    cases_refs: CsvColumn
-    cases_custom_scenario: CsvColumn
-    cases_section_id: CsvColumn
-    cases_section_desc: CsvColumn
-    cases_type_id: CsvColumn
-    cases_custom_test_type: CsvColumn
+    def add_csv_cases(self, section_object: Section = None, parent_section: Section = None):
+        for case in section_object.cases:
+            steps = os.linesep.join([step.content for step in case.steps])
+            row = CsvRow(title=case.title, automation_status="", automation_type=None,
+                         preconds=section_object.description,
+                         estimate="",
+                         expected="", platform="", priority_id=Priority.Medium, refs=case.references,
+                         scenario=steps,
+                         section_id=section_object.name if parent_section is None else "{parent_name} / {name}".format(
+                             parent_name=parent_section.name, name=section_object.name),
+                         section_desc=section_object.description,
+                         type_id=Type.Regression,
+                         test_type=TypeOfTest.Manual)
+            self.csv_cases.append(row)
 
 
 if __name__ == '__main__':
     print(list(Priority))
     print(list(Type))
-    row = CsvRow(title="test", automation_status="", automation_type=None, preconds="Some Background", estimate="",
-                 expected="", platform="", priority_id=Priority.Medium, refs="@JIRA-544",
-                 scenario="all the scenario text", section_id="MySection",
-                 section_desc="feature stuff and the background", type_id=Type.Regression, test_type=TypeOfTest.Manual)
-    print(row)
-    # row.cases_title.value = "n ew tile"
-    print(dataclasses.asdict(row).keys())
-    with open("/Users/dave/tmp/export.csv", 'w', newline='') as csv_file:
-        writer = csv.DictWriter(csv_file,
-                                fieldnames=[csv_column["csv_name"] for csv_column in dataclasses.asdict(row).values()])
-        writer.writeheader()
-        rowdict = {
-            row.cases_title.csv_name: row.cases_title.value,
-            row.cases_custom_automation_status.csv_name: row.cases_custom_automation_status.value,
-            row.cases_custom_automation_type.csv_name: row.cases_custom_automation_type.value,
-            row.cases_custom_preconds.csv_name: row.cases_custom_preconds.value,
-            row.cases_estimate.csv_name: row.cases_estimate.value,
-            row.cases_custom_expected.csv_name: row.cases_custom_expected.value,
-            row.cases_custom_platform.csv_name: row.cases_custom_platform.value,
-            row.cases_priority_id.csv_name: row.cases_priority_id.value,
-            row.cases_refs.csv_name: row.cases_refs.value,
-            row.cases_custom_scenario.csv_name: row.cases_custom_scenario.value,
-            row.cases_section_id.csv_name: row.cases_section_id.value,
-            row.cases_section_desc.csv_name: row.cases_section_desc.value,
-            row.cases_type_id.csv_name: row.cases_type_id.value,
-            row.cases_custom_test_type.csv_name: row.cases_custom_test_type.value
-        }
-        writer.writerow(rowdict)
+    test_row = CsvRow(title="test", automation_status="", automation_type=None, preconds="Some Background", estimate="",
+                      expected="", platform="", priority_id=Priority.Medium, refs="@JIRA-544",
+                      scenario="all the scenario text", section_id="MySection",
+                      section_desc="feature stuff and the background", type_id=Type.Regression,
+                      test_type=TypeOfTest.Manual)
+    print(test_row)
+    print(dataclasses.asdict(test_row).keys())

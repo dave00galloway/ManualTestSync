@@ -41,8 +41,8 @@ class TestpadExporter(object):
         gherkin_suites = {}
         for suite in suites:
             feature = self._find_feature(suite)
-            if feature.feature_name == "Upgrade Tests":
-                pass
+            # if feature.feature_name == "Upgrade Tests":
+            #     pass
             feature_text = feature.get_feature_text()
 
             with tempfile.NamedTemporaryFile() as temp_file:

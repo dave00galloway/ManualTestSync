@@ -1,4 +1,5 @@
 import os
+from typing import List
 
 
 class TestRailImporter(object):
@@ -7,7 +8,7 @@ class TestRailImporter(object):
             raise ValueError("out_dir and suites cannot be None. {locals}".format(locals=str(locals())))
         self.suites = suites
         self.out_dir = out_dir
-        self.sections = []
+        self.sections = []  # type: List[Section]
 
     def create_sections(self):
         current_section = None
@@ -84,8 +85,8 @@ class Section(object):
             raise ValueError("Section name cannot be None. {locals}".format(locals=str(locals())))
         self.description = description
         self.name = name
-        self.sections = []
-        self.cases = []
+        self.sections = []  # type: List[Section]
+        self.cases = []  # type: List[Case]
 
 
 class Case(object):
@@ -98,7 +99,7 @@ class Case(object):
         self.references = references
         self.title = title
         self.custom = []
-        self.steps = []
+        self.steps = []  # type: List[Step]
 
 
 class Step(object):
