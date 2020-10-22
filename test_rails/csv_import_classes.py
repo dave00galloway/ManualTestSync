@@ -70,7 +70,7 @@ class CsvRow(object):
         self.cases_custom_preconds = CsvColumn(
             test_rails_name="cases_custom_preconds",
             csv_name="Background",
-            value=preconds)
+            value="<gherkin>{preconds}</gherkin>".format(preconds=preconds))
         self.cases_estimate = CsvColumn(
             test_rails_name="cases_estimate",
             csv_name="Estimate",
