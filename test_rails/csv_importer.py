@@ -5,6 +5,8 @@ from typing import List
 
 from test_rails.csv_import_classes import CsvRow, Priority, Type, TypeOfTest
 from test_rails.importer import TestRailImporter, Section
+from test_rails.test_rails_import_classes import Case, Step
+from testpad_exporter.testpad_export import GherkinError
 
 
 class TestRailCSVImporter(TestRailImporter):
@@ -54,7 +56,7 @@ class TestRailCSVImporter(TestRailImporter):
 
     def add_csv_cases(self, section_object: Section = None, parent_section: Section = None):
         for case in section_object.cases:
-            steps = os.linesep.join([step.content for step in case.steps])
+            steps = self.squish_steps(case)
             row = CsvRow(title=case.title, automation_status="", automation_type=None,
                          preconds=section_object.description,
                          estimate="",
@@ -66,6 +68,31 @@ class TestRailCSVImporter(TestRailImporter):
                          type_id=Type.Regression,
                          test_type=TypeOfTest.Manual)
             self.csv_cases.append(row)
+
+    @staticmethod
+    def squish_steps(case: Case = None):
+        squished_step = ""
+        for step in case.steps:
+            if step.step_argument is not None:
+                if step.step_argument["type"] == "DocString":
+                    step.content = "{content}{ls}{doc_string}".format(doc_string=step.step_argument["content"],
+                                                                      ls=os.linesep,
+                                                                      content=step.content)
+                    squished_step = TestRailCSVImporter.append_step_to_squished_step(squished_step=squished_step,
+                                                                                     step=step)
+                else:
+                    raise GherkinError("unknown step argument type {type}".format(type=step.step_argument["type"]))
+            else:
+                squished_step = TestRailCSVImporter.append_step_to_squished_step(squished_step=squished_step, step=step)
+
+        return squished_step
+
+    @staticmethod
+    def append_step_to_squished_step(squished_step: str = None, step: Step = None):
+        squished_step = "{squished_step}{ls}{step}".format(squished_step=squished_step,
+                                                           ls=os.linesep,
+                                                           step=step.content)
+        return squished_step
 
 
 if __name__ == '__main__':
