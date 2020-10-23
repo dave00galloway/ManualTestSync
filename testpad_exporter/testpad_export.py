@@ -59,7 +59,8 @@ class TestpadExporter(object):
             split_lines = str(line).split(os.linesep)
             for i, split_line in enumerate(split_lines):
                 if i > 0 and len(split_line.strip()) > 0:
-                    if not split_line.startswith(("Given", "When", "Then", "And", "given", "when", "then", "and")):
+                    if not split_line.startswith(
+                            ("Given", "When", "Then", "And", "But", "given", "when", "then", "and", "but")):
                         split_line = "And {sl}".format(sl=split_line)
                     if split_line[0].islower():
                         split_line = split_line.capitalize()
@@ -81,6 +82,12 @@ class TestpadExporter(object):
         return GherkinFeatureCandidate(suite_name=suite_name, feature_name=feature_name, scenarios=scenarios)
 
 
+def check_step_text_for_colons(text: str = None):
+    if text.startswith(("Given:", "When:", "Then:", "And:", "But:", "given:", "when:", "then:", "and:", "but:")):
+        text = text.replace(":", "", 1)
+    return text
+
+
 class GherkinFeatureCandidate(object):
     def __init__(self, suite_name=None, feature_name=None, scenarios=None):
         self.scenarios = scenarios
@@ -94,9 +101,10 @@ class GherkinFeatureCandidate(object):
             try:
                 case = row.find(class_="case")
                 if case is not None:
-                    self.feature_text.append(case.text)
+                    text = check_step_text_for_colons(case.text)
+                    self.feature_text.append(text)
             except Exception as e:
-                print(e)
+                raise Exception("error parsing {row} ".format(row=row)) from e
         return self.feature_text
 
 

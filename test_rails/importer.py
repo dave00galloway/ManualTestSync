@@ -1,6 +1,8 @@
 import os
 from typing import List
 
+from test_rails.test_rails_import_classes import Section, Case, Step
+
 
 class TestRailImporter(object):
     def __init__(self, out_dir=None, suites=None, **kwargs):
@@ -63,10 +65,12 @@ class TestRailImporter(object):
         case.steps.append(step_)
 
     @staticmethod
-    def add_scenario_to_feature(scenario=None, feature_section=None, outline=False):
+    def add_scenario_to_feature(scenario: dict = None, feature_section: Section = None, outline: bool = False):
         scenario_type = "Scenario Outline" if outline else "Scenario"
         scenario_ = Case(title=": ".join([scenario_type, scenario["name"]]),
                          references=", ".join([str(t["name"]).replace("@", "") for t in scenario["tags"]]))
+        if "description" in scenario.keys():
+            scenario_.steps.append(Step(index=0, content=scenario["description"]))
         for i, step in enumerate(scenario["steps"]):
             step_argument = step["argument"] if "argument" in dict(step).keys() else None
             step_ = Step(index=i + 1, content="{keyword} {text}".format(keyword=step["keyword"], text=step['text']),
@@ -76,41 +80,6 @@ class TestRailImporter(object):
             TestRailImporter.add_examples_to_scenario(case=scenario_, examples=scenario["examples"],
                                                       step_no=len(scenario_.steps) + 1)
         feature_section.cases.append(scenario_)
-
-
-class Section(object):
-    def __init__(self, name=None, description="", **kwargs):
-        super().__init__()
-        if name is None:
-            raise ValueError("Section name cannot be None. {locals}".format(locals=str(locals())))
-        self.description = description
-        self.name = name
-        self.sections = []  # type: List[Section]
-        self.cases = []  # type: List[Case]
-
-
-class Case(object):
-    def __init__(self, title=None, references=None, **kwargs):
-        super().__init__()
-        if title is None:
-            raise ValueError("Case title cannot be None. {locals}".format(locals=str(locals())))
-        if references is None:
-            references = []
-        self.references = references
-        self.title = title
-        self.custom = []
-        self.steps = []  # type: List[Step]
-
-
-class Step(object):
-    def __init__(self, index=None, content=None, expected="", step_argument=None):
-        super().__init__()
-        if index is None or content is None:
-            raise ValueError("Step index and content cannot be None. {locals}".format(locals=str(locals())))
-        self.expected = expected
-        self.content = content
-        self.index = index
-        self.step_argument = step_argument
 
 
 class GherkinElementException(Exception):
