@@ -81,6 +81,47 @@ class TestRailImporter(object):
                                                       step_no=len(scenario_.steps) + 1)
         feature_section.cases.append(scenario_)
 
+    @staticmethod
+    def squish_steps(case: Case = None):
+        squished_step = ""
+        for step in case.steps:
+            if step.step_argument is not None:
+                if step.step_argument["type"] == "DocString":
+                    step.content = "{content}{ls}{doc_string}".format(doc_string=step.step_argument["content"],
+                                                                      ls=os.linesep,
+                                                                      content=step.content)
+                    squished_step = append_step_to_squished_step(squished_step=squished_step,
+                                                                 step=step)
+                elif step.step_argument["type"] == "DataTable":
+                    squished_step = append_step_to_squished_step(squished_step=squished_step,
+                                                                 step=step)
+                    table_content = "|||{headers}".format(
+                        headers="|".join([cell["value"] for cell in step.step_argument["rows"][0]["cells"]]))
+                    for i, row in enumerate(step.step_argument["rows"]):
+                        if i > 0:
+                            table_content = "{content}{s}||{values}".format(content=table_content, s=os.linesep,
+                                                                            values="|".join(
+                                                                                cell["value"] for cell in row["cells"]))
+                    squished_step = append_step_to_squished_step(squished_step=squished_step,
+                                                                 step=Step(index=0,
+                                                                           content=table_content))
+
+                else:
+                    raise GherkinElementException(
+                        "unknown step argument type {type}".format(type=step.step_argument["type"]))
+
+            else:
+                squished_step = append_step_to_squished_step(squished_step=squished_step, step=step)
+
+        return squished_step
+
+
+def append_step_to_squished_step(squished_step: str = None, step: Step = None):
+    squished_step = "{squished_step}{ls}{step}".format(squished_step=squished_step,
+                                                       ls=os.linesep,
+                                                       step=step.content)
+    return squished_step
+
 
 class GherkinElementException(Exception):
     pass

@@ -5,8 +5,6 @@ from typing import List
 
 from test_rails.csv_import_classes import CsvRow, Priority, Type, TypeOfTest
 from test_rails.importer import TestRailImporter, Section
-from test_rails.test_rails_import_classes import Case, Step
-from testpad_exporter.testpad_export import GherkinError
 
 
 class TestRailCSVImporter(TestRailImporter):
@@ -68,31 +66,6 @@ class TestRailCSVImporter(TestRailImporter):
                          type_id=Type.Regression,
                          test_type=TypeOfTest.Manual)
             self.csv_cases.append(row)
-
-    @staticmethod
-    def squish_steps(case: Case = None):
-        squished_step = ""
-        for step in case.steps:
-            if step.step_argument is not None:
-                if step.step_argument["type"] == "DocString":
-                    step.content = "{content}{ls}{doc_string}".format(doc_string=step.step_argument["content"],
-                                                                      ls=os.linesep,
-                                                                      content=step.content)
-                    squished_step = TestRailCSVImporter.append_step_to_squished_step(squished_step=squished_step,
-                                                                                     step=step)
-                else:
-                    raise GherkinError("unknown step argument type {type}".format(type=step.step_argument["type"]))
-            else:
-                squished_step = TestRailCSVImporter.append_step_to_squished_step(squished_step=squished_step, step=step)
-
-        return squished_step
-
-    @staticmethod
-    def append_step_to_squished_step(squished_step: str = None, step: Step = None):
-        squished_step = "{squished_step}{ls}{step}".format(squished_step=squished_step,
-                                                           ls=os.linesep,
-                                                           step=step.content)
-        return squished_step
 
 
 if __name__ == '__main__':
